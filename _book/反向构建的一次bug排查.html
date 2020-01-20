@@ -1,0 +1,363 @@
+
+<!DOCTYPE HTML>
+<html lang="" >
+    <head>
+        <meta charset="UTF-8">
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <title>反向构建的一次bug排查 · GitBook</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="description" content="">
+        <meta name="generator" content="GitBook 3.2.3">
+        
+        
+        
+    
+    <link rel="stylesheet" href="gitbook/style.css">
+
+    
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-highlight/website.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-search/search.css">
+                
+            
+                
+                <link rel="stylesheet" href="gitbook/gitbook-plugin-fontsettings/website.css">
+                
+            
+        
+
+    
+
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+        
+    
+
+        
+    
+    
+    <meta name="HandheldFriendly" content="true"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="gitbook/images/apple-touch-icon-precomposed-152.png">
+    <link rel="shortcut icon" href="gitbook/images/favicon.ico" type="image/x-icon">
+
+    
+    <link rel="next" href="golang笔记.html" />
+    
+    
+    <link rel="prev" href="./" />
+    
+
+    </head>
+    <body>
+        
+<div class="book">
+    <div class="book-summary">
+        
+            
+<div id="book-search-input" role="search">
+    <input type="text" placeholder="Type to search" />
+</div>
+
+            
+                <nav role="navigation">
+                
+
+
+<ul class="summary">
+    
+    
+
+    
+
+    
+        
+        
+    
+        <li class="chapter " data-level="1.1" data-path="./">
+            
+                <a href="./">
+            
+                    
+                    Introduction
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter active" data-level="1.2" data-path="反向构建的一次bug排查.html">
+            
+                <a href="反向构建的一次bug排查.html">
+            
+                    
+                    反向构建的一次bug排查
+            
+                </a>
+            
+
+            
+        </li>
+    
+        <li class="chapter " data-level="1.3" data-path="golang笔记.html">
+            
+                <a href="golang笔记.html">
+            
+                    
+                    golang学习笔记
+            
+                </a>
+            
+
+            
+        </li>
+    
+
+    
+
+    <li class="divider"></li>
+
+    <li>
+        <a href="https://www.gitbook.com" target="blank" class="gitbook-link">
+            Published with GitBook
+        </a>
+    </li>
+</ul>
+
+
+                </nav>
+            
+        
+    </div>
+
+    <div class="book-body">
+        
+            <div class="body-inner">
+                
+                    
+
+<div class="book-header" role="navigation">
+    
+
+    <!-- Title -->
+    <h1>
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <a href="." >反向构建的一次bug排查</a>
+    </h1>
+</div>
+
+
+
+
+                    <div class="page-wrapper" tabindex="-1" role="main">
+                        <div class="page-inner">
+                            
+<div id="book-search-results">
+    <div class="search-noresults">
+    
+                                <section class="normal markdown-section">
+                                
+                                <h2 id="&#x95EE;&#x9898;&#x63CF;&#x8FF0;">&#x95EE;&#x9898;&#x63CF;&#x8FF0;</h2>
+<p>&#x8868;&#x73B0;&#x4E00;&#xFF1A;&#x7EC4;&#x5185;&#x4F7F;&#x7528;golang&#x5F00;&#x53D1;&#x7684;stable proxy&#x7A0B;&#x5E8F;&#x8DD1;&#x7740;&#x8DD1;&#x7740;&#x5C31;&#x4F1A;&#x53CD;&#x5E94;&#x53D8;&#x6162;&#xFF0C;&#x751A;&#x81F3;&#x5361;&#x6B7B;&#x65E0;&#x54CD;&#x5E94;&#xFF08;&#x7A0B;&#x5E8F;&#x4E2D;&#x7684;http&#x670D;&#x52A1;&#x7684;&#x63A5;&#x53E3;&#x8C03;&#x7528;&#x8D85;&#x65F6;&#x5931;&#x8D25;&#xFF0C;&#x8868;&#x73B0;&#x5C31;&#x662F;&#x7A0B;&#x5E8F;&#x5361;&#x6B7B;&#x65E0;&#x54CD;&#x5E94;&#xFF09;&#x3002;&#x4F46;&#x662F;&#x53EA;&#x8981;&#x4E00;&#x91CD;&#x542F;&#x5C31;&#x4F1A;&#x53D8;&#x6B63;&#x5E38;&#x3002;</p>
+<p>&#x8868;&#x73B0;&#x4E8C;&#xFF1A;&#x4F7F;&#x7528;&#x7EC4;&#x5185;&#x7684;golang&#x7F51;&#x7EDC;&#x6846;&#x67B6;tcp&#xFF0C;&#x6536;&#x5230;&#x4E00;&#x4E2A;protobuf&#x7684;&#x6570;&#x636E;&#x5305;&#xFF0C;&#x4F7F;&#x7528;proto.Unmarshal(pack.Item.Data, request)&#x7684;&#x65F6;&#x5019;&#x603B;&#x662F;&#x5931;&#x8D25; - unexcept EOF</p>
+<h2 id="&#x95EE;&#x9898;&#x5206;&#x6790;">&#x95EE;&#x9898;&#x5206;&#x6790;</h2>
+<h3 id="&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E00;&#xFF1A;-&#x5927;&#x91CF;&#x7684;closewait&#x72B6;&#x6001;&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x4E0D;&#x53EF;&#x7528;">&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E00;&#xFF1A; &#x5927;&#x91CF;&#x7684;CLOSE_WAIT&#x72B6;&#x6001;&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x4E0D;&#x53EF;&#x7528;</h3>
+<p>&#x9488;&#x5BF9;&#x8868;&#x73B0;&#x4E00;&#xFF1A;stable proxy &#x53CD;&#x5E94;&#x53D8;&#x6162; - &#x8FD9;&#x91CC;&#x7684;&#x8868;&#x73B0;&#x662F;http&#x670D;&#x52A1;&#x63A5;&#x53E3;&#x8BBF;&#x95EE;&#x53D8;&#x6162;&#xFF0C;&#x4E4B;&#x524D;&#x9047;&#x5230;&#x8FD9;&#x4E2A;&#x95EE;&#x9898;&#x662F;&#x56E0;&#x4E3A;&#x7CFB;&#x7EDF;&#x4E0B;&#x9762;&#x7684; CLOSE_WAIT &#x72B6;&#x6001;&#x7684;socket&#x8FC7;&#x591A;&#x5BFC;&#x81F4;&#x7684;&#x3002;&#x8FC7;&#x591A;&#x7684;CLOSE_WAIT&#x72B6;&#x6001;&#x7684;socket&#x4F1A;&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x7684;&#x53EF;&#x7528;socket&#x8D44;&#x6E90;&#x8017;&#x3002;&#x5F53;&#x670D;&#x52A1;&#x51FA;&#x73B0;&#x5F02;&#x5E38;&#x7684;&#x65F6;&#x5019;&#xFF0C;&#x767B;&#x5F55;&#x670D;&#x52A1;&#x5668;&#x53BB;&#x67E5;&#x770B;socket&#x7684;&#x72B6;&#x6001;&#xFF0C;&#x53D1;&#x73B0;socket&#x7684;&#x72B6;&#x6001;&#x8BD5;&#x662F;&#x6B63;&#x5E38;&#x7684;&#xFF0C;CLOSE_WAIT&#x7684;&#x6570;&#x91CF;&#x53EA;&#x6709;&#x4E8C;&#x4E09;&#x5341;&#x4E2A;&#x3002;CLOSE_WAIT&#x72B6;&#x6001;&#x662F;tcp&#x7684;&#x88AB;&#x52A8;&#x5173;&#x95ED;&#x65B9;&#xFF0C;&#x5728;&#x53D1;&#x9001;&#x6700;&#x540E;&#x4E00;&#x4E2A;FIN&#x5305;&#x7684;&#x4E00;&#x4E2A;&#x6B63;&#x5E38;&#x72B6;&#x6001;&#x3002;&#x670D;&#x52A1;&#x91CD;&#x542F;&#x5C31;&#x4F1A;&#x597D;-&#x8FDB;&#x7A0B;&#x91CA;&#x653E;CLOSE_WAIT&#x72B6;&#x6001;&#x7684;socket&#x81EA;&#x7136;&#x91CD;&#x542F;&#x5C31;&#x597D;&#x4E86;&#x3002;</p>
+<pre><code>netstat -anp | grep CLOSE_WAIT
+</code></pre><p>&#x5982;&#x679C;&#x8BF4;&#x662F;&#x56E0;&#x4E3A;CLOSE_WAIT&#x72B6;&#x6001;&#x5F15;&#x8D77;&#x7684;&#xFF0C;&#x90A3;&#x4E48;&#x53EF;&#x4EE5;&#x5206;&#x6790;&#x6A21;&#x62DF;&#x4E00;&#x4E0B;&#xFF1A;
+proxy&#x7684;tcp&#x94FE;&#x63A5;&#x53EA;&#x5B58;&#x5728;&#x4E8E;&#x4E24;&#x4E2A;&#x5730;&#x65B9;&#xFF0C;&#x4E00;&#x662F;&#x548C;build&#x7684;tcp&#x94FE;&#x63A5;&#xFF0C;&#x53E6;&#x4E00;&#x4E2A;&#x5C31;&#x662F;&#x548C;mysql&#x6570;&#x636E;&#x5E93;&#x7684;&#x94FE;&#x63A5;&#x3002;</p>
+<p>&#x4EC0;&#x4E48;&#x65F6;&#x5019;build&#x548C;mysql&#x4F1A;&#x4E3B;&#x52A8;&#x65AD;&#x5F00;&#x94FE;&#x63A5;&#x5462;&#xFF1F;</p>
+<ol>
+<li>build&#x548C;mysql&#x6570;&#x636E;&#x5E93;&#x8FDB;&#x7A0B;&#x9000;&#x51FA;</li>
+<li>build&#x548C;mysql&#x7684;TCP&#x94FE;&#x63A5;&#x8D85;&#x65F6;</li>
+</ol>
+<p>build&#x7684;tcp&#x8BF7;&#x6C42;&#x786E;&#x5B9E;&#x8BBE;&#x7F6E;&#x4E86;&#x8D85;&#x65F6;30s&#xFF0C;&#x4F46;&#x662F;&#x5E76;&#x6CA1;&#x6709;&#x8D85;&#x65F6;&#x5019;&#x65AD;&#x5F00;&#x7684;&#x903B;&#x8F91;&#x3002;
+&#x81F3;&#x4E8E;mysql&#x7684;&#x8D85;&#x65F6;&#xFF0C;&#x56E0;&#x4E3A;XDB&#x7684;db-proxy&#x662F;&#x4F5C;&#x4E3A;&#x670D;&#x52A1;&#x7AEF;&#x5E94;&#x8BE5;&#x4E5F;&#x662F;&#x6CA1;&#x6709;&#x8BBE;&#x7F6E;&#x5BA2;&#x6237;&#x7AEF;&#x8D85;&#x65F6;&#x65AD;&#x5F00;&#x7684;&#x903B;&#x8F91;</p>
+<p>&#x4E0B;&#x9762;&#x662F;&#x7F51;&#x7EDC;&#x4E0A;&#x7684;&#x4E00;&#x4E2A;&#x5B9E;&#x4F8B;-&#x51E0;&#x767E;&#x4E2A;CLOSE_WAIT&#x72B6;&#x6001;&#x7684;socket&#x5BFC;&#x81F4;&#x4E86;&#x670D;&#x52A1;&#x4E0D;&#x53EF;&#x7528;&#xFF0C;&#x53EA;&#x80FD;&#x91CD;&#x542F;&#x8FDB;&#x7A0B;&#x3002;&#x8FDB;&#x7A0B;&#x91CD;&#x542F;&#x90A3;&#x4E48;&#x5C31;&#x4F1A;&#x91CA;&#x653E;&#x8FDB;&#x7A0B;&#x8D44;&#x6E90;-socket&#xFF0C;&#x6240;&#x4EE5;&#x91CD;&#x542F;&#x5BF9;&#x4E8E;&#x8FD9;&#x79CD;&#x60C5;&#x51B5;&#x662F;&#x6709;&#x6548;&#x7684;&#x3002;&#x4F46;&#x662F;&#x4E3A;&#x4EC0;&#x4E48;&#x53EA;&#x6709;&#x51E0;&#x767E;&#x4E2A;CLOSE_WAIT&#x7684;socket&#x5C31;&#x4F1A;&#x5BFC;&#x81F4;&#x4E0D;&#x53EF;&#x7528;&#x5462;&#xFF1F;&#x4E00;&#x53F0;&#x673A;&#x5668;&#x7684;&#x6587;&#x4EF6;&#x63CF;&#x8FF0;&#x7B26;&#x4E0D;&#x662F;&#x53EF;&#x4EE5;&#x5F00;&#x5230;65535&#x561B;&#xFF1F;</p>
+<p><a href="https://mp.weixin.qq.com/s?__biz=MzI4MjA4ODU0Ng==&amp;mid=402163560&amp;idx=1&amp;sn=5269044286ce1d142cca1b5fed3efab1&amp;3rd=MzA3MDU4NTYzMw==&amp;scene=6#rd" target="_blank">https://mp.weixin.qq.com/s?__biz=MzI4MjA4ODU0Ng==&amp;mid=402163560&amp;idx=1&amp;sn=5269044286ce1d142cca1b5fed3efab1&amp;3rd=MzA3MDU4NTYzMw==&amp;scene=6#rd</a></p>
+<p>&#x5173;&#x4E8E;&#x4E3A;&#x4EC0;&#x4E48;&#x4E0D;&#x80FD;&#x5F00;&#x5230;65535&#xFF0C;&#x662F;&#x548C;&#x7F51;&#x4E0A;&#x8FD9;&#x4E2A;&#x4F8B;&#x5B50;&#x6709;&#x5173;&#x7CFB;&#x7684;&#xFF0C;&#x4ED6;&#x7684;tcp server&#xFF0C;&#x4F7F;&#x7528;&#x5355;&#x8FDB;&#x7A0B;&#x7684;epoll&#x6A21;&#x578B;&#xFF0C;&#x901A;&#x8FC7;&#x6CE8;&#x518C;&#x4E8B;&#x4EF6;&#x56DE;&#x8C03;&#x6765;&#x8FDB;&#x884C;&#x8BFB;&#x5199;&#x7684;&#x5904;&#x7406;&#xFF0C;&#x56DE;&#x8C03;&#x51FD;&#x6570;&#x901A;&#x8FC7;&#x534F;&#x7A0B;&#x8C03;&#x5EA6;&#xFF0C;&#x5E76;&#x6CA1;&#x6709;&#x653E;&#x5728;&#x4E00;&#x4E2A;&#x5B50;&#x7EBF;&#x7A0B;&#x4E2D;&#x6267;&#x884C;&#xFF0C;&#x4F46;&#x662F;handle&#x7684;&#x8FC7;&#x7A0B;&#x4E2D;&#x53C8;&#x540C;&#x6B65;&#x8BF7;&#x6C42;&#x4E86;&#x7B2C;&#x4E09;&#x65B9;&#x670D;&#x52A1;&#xFF0C;&#x5BFC;&#x81F4;&#x534F;&#x7A0B;&#x7684;yeild&#x8C03;&#x5EA6;&#x51FD;&#x6570;&#x5931;&#x6548;&#xFF0C;&#x8FD9;&#x6837;&#x4E00;&#x4E2A;&#x4E25;&#x91CD;&#x7684;&#x95EE;&#x9898;&#x5C31;&#x662F;&#x56DE;&#x8C03;&#x51FD;&#x6570;&#x548C;loop&#x51FD;&#x6570;&#x5728;&#x540C;&#x4E00;&#x4E2A;&#x7EBF;&#x7A0B;&#x91CC;&#x9762;&#xFF0C;&#xFF0C;&#x56DE;&#x8C03;&#x51FD;&#x6570;&#x76F4;&#x63A5;&#x9650;&#x5236;&#x4E86;loop&#x51FD;&#x6570;&#x7684;&#x5904;&#x7406;&#xFF0C;loop&#x51FD;&#x6570;&#x7684;&#x94FE;&#x63A5;&#x8BF7;&#x6C42;&#x961F;&#x5217;&#x5927;&#x5C0F;&#x53EA;&#x6709;128&#xFF0C;&#x4E5F;&#x5C31;&#x5BFC;&#x81F4;&#x5BA2;&#x6237;&#x7AEF;&#x8BF7;&#x6C42;&#x8D85;&#x65F6;-&#x65AD;&#x5F00;,&#x670D;&#x52A1;&#x7AEF;CLOSE_WAIT&#x72B6;&#x6001;&#x53C8;&#x4E0D;&#x4F1A;&#x4E3B;&#x52A8;&#x6D88;&#x5931;&#xFF0C;&#x4E0D;&#x80FD;&#x5728;&#x8FD9;&#x4E2A;&#x7AEF;&#x53E3;&#x521B;&#x5EFA;&#x65B0;&#x7684;&#x94FE;&#x63A5;&#x5F15;&#x8D77;&#x670D;&#x52A1;&#x505C;&#x6B62;&#x3002;CLOSE_WAIT&#x4E00;&#x822C;&#x4F1A;&#x6301;&#x7EED;&#x4E24;&#x4E2A;&#x5C0F;&#x65F6;&#x3002;</p>
+<h3 id="&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E8C;&#xFF1A;&#x5927;&#x91CF;&#x7684;timewait&#x72B6;&#x6001;&#x7684;socket&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x4E0D;&#x53EF;&#x7528;">&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E8C;&#xFF1A;&#x5927;&#x91CF;&#x7684;TIME_WAIT&#x72B6;&#x6001;&#x7684;socket&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x4E0D;&#x53EF;&#x7528;</h3>
+<p>&#x867D;&#x7136;&#x4E0D;&#x662F;&#x4E0A;&#x9762;&#x7684;CLOSE_WAIT&#x7684;&#x95EE;&#x9898;&#x4F46;&#x662F;&#x53D1;&#x73B0;&#x4E86;&#x5F88;&#x591A;TIME_WAIT&#x7684;&#x72B6;&#x6001;&#xFF0C;&#x5927;&#x7EA6;&#x6709;&#x51E0;&#x767E;&#x4E2A;</p>
+<pre><code>netstat -anp | grep TIME_WAIT
+</code></pre><p>TIME_WAIT&#x7684;&#x72B6;&#x6001;&#x662F;tcp&#x4E3B;&#x52A8;&#x65AD;&#x5F00;&#x7684;&#x4E00;&#x65B9;&#x7684;&#x72B6;&#x6001;&#xFF0C;&#x5728;&#x7B49;&#x5F85;&#x88AB;&#x52A8;&#x5173;&#x95ED;&#x7684;&#x4E00;&#x65B9;&#x53D1;&#x9001;FIN&#x5305;&#x7684;&#x4E00;&#x79CD;&#x6B63;&#x5E38;&#x72B6;&#x6001;&#x3002;&#x4E00;&#x822C;&#x8FD9;&#x79CD;&#x72B6;&#x6001;&#x4F1A;&#x6301;&#x7EED;2min&#x3002;&#x5904;&#x4E8E;TIME_WAIT&#x72B6;&#x6001;&#x7684;socket&#x5982;&#x679C;&#x6570;&#x91CF;&#x8FC7;&#x591A;&#x7684;&#x8BDD;&#xFF0C;&#x4F1A;&#x5BFC;&#x81F4;&#x65B0;&#x6765;&#x7684;&#x5BA2;&#x6237;&#x7AEF;&#x94FE;&#x63A5;&#x56E0;&#x4E3A;&#x7AEF;&#x53E3;&#x8D44;&#x6E90;&#x4E0D;&#x8DB3;&#x800C;&#x5BFC;&#x81F4;&#x8FDE;&#x63A5;&#x5931;&#x8D25;&#x3002;&#x90A3;&#x6211;&#x4EEC;&#x4F7F;&#x7528;SO_REUSEADDR&#x53C2;&#x6570;&#x4E0D;&#x884C;&#x5417;&#xFF0C;&#x590D;&#x7528;TIME_WAIT&#x72B6;&#x6001;&#x7684;socket&#x3002;&#x8FD9;&#x6837;&#x4E5F;&#x662F;&#x4E0D;&#x884C;&#x7684;&#x56E0;&#x4E3A;&#x5BA2;&#x6237;&#x7AEF;&#x7684;&#x8FD9;&#x5199;socket&#x90FD;&#x662F;&#x64CD;&#x4F5C;&#x7CFB;&#x7EDF;&#x968F;&#x673A;&#x5206;&#x914D;&#x7684;&#x3002;&#x5728;&#x9AD8;&#x5E76;&#x53D1;&#x7684;&#x5927;&#x91CF;&#x77ED;&#x94FE;&#x63A5;&#x7CFB;&#x7EDF;&#x4E2D;&#x8FD9;&#x79CD;&#x60C5;&#x51B5;&#x4F1A;&#x51FA;&#x73B0;&#x3002;&#x4F46;&#x662F;&#x5206;&#x6790;&#x4E86;&#x4E00;&#x4E0B;proxy&#x7684;&#x4EE3;&#x7801;&#x53D1;&#x73B0;&#x5E76;&#x4E0D;&#x662F;&#x8FD9;&#x4E2A;&#x539F;&#x56E0;&#xFF0C;&#x56E0;&#x4E3A;&#x548C;proxy&#x53EA;&#x63D0;&#x4F9B;&#x4E09;&#x4E2A;&#x670D;&#x52A1;&#xFF0C;&#x4E00;&#x4E2A;tcp&#x670D;&#x52A1;&#x548C;&#x4E24;&#x4E2A;http&#x670D;&#x52A1;&#xFF0C;&#x800C;&#x4E14;http&#x670D;&#x52A1;&#x7684;&#x5BA2;&#x6237;&#x7AEF;&#x90FD;&#x662F;&#x4F7F;&#x7528;http1.1&#x7684;keepalive&#x6765;&#x8FDB;&#x884C;&#x94FE;&#x63A5;&#x7684;&#xFF0C;&#x5E76;&#x4E0D;&#x77ED;&#x94FE;&#x63A5;&#xFF0C;&#x800C;&#x4E14;&#x5E76;&#x53D1;&#x91CF;&#x4E5F;&#x4E0D;&#x9AD8;&#x3002;&#x90A3;&#x8FD9;&#x4E9B;timewait&#x662F;&#x54EA;&#x91CC;&#x4EA7;&#x751F;&#x7684;&#x5462;&#xFF1F;&#x662F;bns&#x7684;&#x67E5;&#x8BE2;&#x63A5;&#x53E3;&#x4EA7;&#x751F;&#x7684;&#x3002;</p>
+<h3 id="&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E09;&#xFF1A;-&#x7CFB;&#x7EDF;&#x8D44;&#x6E90;&#x8017;&#x5C3D;&#x5BFC;&#x81F4;&#x5361;&#x987F;&#x6216;&#x8005;&#x9000;&#x51FA;">&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E09;&#xFF1A; &#x7CFB;&#x7EDF;&#x8D44;&#x6E90;&#x8017;&#x5C3D;&#x5BFC;&#x81F4;&#x5361;&#x987F;&#x6216;&#x8005;&#x9000;&#x51FA;</h3>
+<p>&#x662F;&#x4E0D;&#x662F;CPU&#x6253;&#x6EE1;&#x4E86;&#xFF0C;&#x8FD8;&#x662F;&#x6709;&#x5185;&#x5B58;&#x6CC4;&#x9732;&#x5BFC;&#x81F4;&#x670D;&#x52A1;&#x8DD1;&#x4E0D;&#x52A8;&#x4E86;&#xFF1F;
+&#x5728;&#x7CFB;&#x7EDF;&#x51FA;&#x95EE;&#x9898;&#x7684;&#x65F6;&#x5019;&#x6211;&#x767B;&#x5F55;&#x4E86;&#x673A;&#x5668;&#x67E5;&#x770B;&#x4E86;&#x8FDB;&#x7A0B;&#x7684;&#x8D44;&#x6E90;&#xFF0C;&#x5E76;&#x6CA1;&#x6709;&#x4EFB;&#x4F55;&#x7684;&#x5F02;&#x5E38;&#xFF0C;CPU&#x548C;&#x5185;&#x5B58;&#x975E;&#x5E38;&#x7684;&#x5065;&#x5EB7;&#x3002;top&#x3002;&#x672C;&#x6765;&#x5C31;&#x662F;&#x4E00;&#x4E2A;&#x7EAF;io&#x7684;&#x670D;&#x52A1;&#xFF0C;&#x5E76;&#x4E0D;&#x5B58;&#x5728;CPU&#x6253;&#x6EE1;&#x7684;&#x60C5;&#x51B5;&#x3002;
+&#x90A3;&#x4E48;&#x662F;socket&#x8D44;&#x6E90;&#x7528;&#x5B8C;&#x4E86;&#xFF1F; &#x4E0B;&#x9762;&#x5217;&#x51E0;&#x4E2A;&#x67E5;&#x770B;&#x8FDB;&#x7A0B;socket&#x72B6;&#x6001;&#x7684;&#x547D;&#x4EE4;&#xFF1A;
+&#x67E5;&#x770B;&#x8FDB;&#x7A0B;&#x7684;&#x7AEF;&#x53E3;&#x5360;&#x7528;&#x60C5;&#x51B5;</p>
+<pre><code>ll /proc/pid/fd | wc -l
+lsof -p pid
+strace -p pid &gt;&gt; log.log 2&gt;&amp;1
+ss -s
+netstat -anp | grep
+</code></pre><p>&#x901A;&#x8FC7;&#x67E5;&#x770B;&#x8BE5;&#x8FDB;&#x7A0B;&#x7684;socket&#x72B6;&#x6001;&#x53D1;&#x73B0;&#x6709;&#x4E00;&#x4E9B;socket&#x7684;&#x72B6;&#x6001;&#x662F;can&apos;t identify protocol&#xFF0C;&#x8FD9;&#x662F;&#x4E00;&#x79CD;&#x5F88;&#x4E0D;&#x6B63;&#x5E38;&#x7684;socket&#x72B6;&#x6001;&#x3002;&#x65E2;&#x4E0D;&#x662F;CLOSE&#xFF0C;ESTABLISHED&#xFF0C;TIME_WAIT&#xFF0C;CLOSE_WAIT&#x72B6;&#x6001;&#x3002;&#x90A3;&#x4E48;&#x8FD9;&#x4E9B;&#x72B6;&#x6001;&#x662F;&#x4EC0;&#x4E48;&#x72B6;&#x6001;&#x5462;&#xFF1F;&#x4E3A;&#x4EC0;&#x4E48;&#x4F1A;&#x51FA;&#x73B0;&#x8FD9;&#x4E9B;&#x72B6;&#x6001;&#x5462;&#xFF1F;</p>
+<p>&#x8FD9;&#x4E9B;&#x72B6;&#x6001;&#x7684;&#x51FA;&#x73B0;&#x6807;&#x8BC6;&#xFF0C;socket&#x6709;&#x6CC4;&#x9732;&#xFF0C;&#x4E0D;&#x80FD;&#x88AB;lsof&#x547D;&#x4EE4;&#x6240;&#x793A;&#x522B;&#x3002;&#x6BD4;&#x5982;&#x53EA;&#x6267;&#x884C;&#x4E86;bind&#x4F46;&#x662F;&#x6CA1;&#x6709;connect&#x6216;&#x8005;listen&#x64CD;&#x4F5C;&#x7684;socket&#xFF0C;&#x8FD8;&#x6709;&#x6CA1;&#x6709;&#x6B63;&#x5E38;close&#x7684;socket&#x3002;&#x8FD8;&#x6709;socket &#x4E3A;&#x4EC0;&#x4E48;&#x4F1A;&#x51FA;&#x73B0;&#x8FD9;&#x4E9B;&#x72B6;&#x6001;&#x7684;socket&#x5462;&#xFF1F;</p>
+<p>&#x5177;&#x4F53;&#x600E;&#x4E48;&#x53BB;&#x67E5;&#x8BE2;&#x8FDB;&#x7A0B;&#x7684;socket&#x6CC4;&#x9732;&#x53EF;&#x4EE5;&#x4F7F;&#x7528; strace &#x547D;&#x4EE4;&#x8FDB;&#x884C;&#x5206;&#x6790;&#xFF0C;&#x53EF;&#x4EE5;&#x53C2;&#x8003;&#x4E0B;&#x9762;&#x7684;&#x5185;&#x5BB9;&#xFF1A;</p>
+<p><a href="https://blog.csdn.net/u011493488/article/details/83212967" target="_blank">https://blog.csdn.net/u011493488/article/details/83212967</a></p>
+<h3 id="&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x56DB;&#xFF1A;http&#x670D;&#x52A1;&#x5C31;&#x662F;&#x5361;&#xFF0C;&#x5904;&#x7406;&#x6162;">&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x56DB;&#xFF1A;http&#x670D;&#x52A1;&#x5C31;&#x662F;&#x5361;&#xFF0C;&#x5904;&#x7406;&#x6162;</h3>
+<p>&#x901A;&#x8FC7;&#x5BF9;&#x67D0;&#x4E00;&#x4E2A;http&#x63A5;&#x53E3;&#x8FDB;&#x884C;&#x538B;&#x6D4B;&#xFF0C;&#x5F53;&#x6211;&#x4EEC;&#x611F;&#x77E5;&#x5230;proxy&#x5361;&#x6B7B;&#x7684;&#x65F6;&#x5019;&#xFF0C;&#x5C31;&#x662F;&#x7F51;&#x9875;&#x6253;&#x5F00;&#x5361;&#x76F4;&#x5230;&#x6253;&#x4E0D;&#x5F00;&#xFF0C;&#x4E00;&#x76F4;&#x5728;&#x8F6C;&#x5708;&#xFF0C;&#x968F;&#x4FBF;&#x6D4B;&#x8BD5;&#x4E00;&#x4E2A;&#x672C;&#x6765;&#x5904;&#x7406;&#x901F;&#x5EA6;&#x5E94;&#x8BE5;&#x5F88;&#x5FEB;&#x7684;&#x63A5;&#x53E3;&#x4E5F;&#x662F;&#x975E;&#x5E38;&#x6162;&#xFF0C;&#x76F4;&#x5230;&#x5BA2;&#x6237;&#x7AEF;&#x8D85;&#x65F6;&#x3002;&#x597D;&#xFF0C;&#x90A3;&#x4E48;&#x73B0;&#x5728;&#x6000;&#x7591;http server&#x51FA;&#x95EE;&#x9898;&#x4E86;&#xFF0C;&#x53D1;&#x73B0;&#x4EE3;&#x7801;&#x4E2D;&#x4F7F;&#x7528;&#x7684;&#x662F;golang&#x539F;&#x751F;&#x7684;http server,&#x662F;&#x4E0D;&#x662F;&#x7528;&#x6CD5;&#x4E0D;&#x5BF9;&#x5462;&#xFF1F;</p>
+<p>&#x7A0B;&#x5E8F;&#x4E2D;&#x4F7F;&#x7528;&#x7684;&#x662F;golang&#x539F;&#x751F;&#x7684;http&#x670D;&#x52A1;&#x5E76;&#x4E14;&#x6CA1;&#x6709;&#x8BBE;&#x7F6E;&#x8BFB;&#x5199;&#x8D85;&#x65F6;&#x3002;http&#x670D;&#x52A1;&#x5C31;&#x7B97;&#x6CA1;&#x8BBE;&#x7F6E;&#x8BFB;&#x5199;&#x8D85;&#x65F6;&#xFF0C;&#x5BA2;&#x6237;&#x7AEF;&#x4E5F;&#x4F1A;&#x8BBE;&#x7F6E;&#x8BFB;&#x8D85;&#x65F6;&#x3002;&#x4E0D;&#x4F1A;&#x5BFC;&#x81F4;&#x7A0B;&#x5E8F;&#x51FA;&#x73B0;&#x53CD;&#x5E94;&#x5403;&#x987F;&#xFF0C;&#x51FA;&#x73B0;&#x5047;&#x6B7B;&#x7684;&#x72B6;&#x51B5;&#x3002;&#x6392;&#x9664;&#xFF0C;&#x5F53;&#x7136;&#x8FD9;&#x91CC;&#x8FD8;&#x662F;&#x8981;&#x53BB;&#x8BBE;&#x7F6E;&#x4E00;&#x4E0B;&#x670D;&#x52A1;&#x7AEF;&#x7684;&#x8BFB;&#x5199;&#x8D85;&#x65F6;</p>
+<h3 id="&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E94;&#xFF1A;&#x6570;&#x636E;&#x5E93;&#x7684;&#x8BBE;&#x7F6E;&#x6709;&#x95EE;&#x9898;">&#x95EE;&#x9898;&#x53EF;&#x80FD;&#x4E94;&#xFF1A;&#x6570;&#x636E;&#x5E93;&#x7684;&#x8BBE;&#x7F6E;&#x6709;&#x95EE;&#x9898;</h3>
+<p>golang&#x7684;mysql&#x662F;&#x6570;&#x636E;&#x5E93;&#x8FDE;&#x63A5;&#x6C60;&#xFF0C;proxy&#x53EA;&#x662F;&#x8BBE;&#x7F6E;&#x4E86;&#x8FDE;&#x63A5;&#x6C60;&#x7684;&#x5927;&#x5C0F;&#x548C;&#x7A7A;&#x95F2;&#x94FE;&#x63A5;&#x6570;&#x91CF;&#x7684;&#x6700;&#x5927;&#x503C;&#xFF0C;&#x5E76;&#x6CA1;&#x6709;&#x8BBE;&#x7F6E;&#x8D85;&#x65F6;&#x65F6;&#x95F4;&#x3002;&#x90A3;&#x4E48;&#x8FD9;&#x6837;&#x7684;&#x8BDD;&#x5C31;&#x4F1A;&#x51FA;&#x73B0;&#xFF0C;mysql&#x670D;&#x52A1;&#x7AEF;&#x8BBE;&#x7F6E;&#x4E86;&#x8D85;&#x65F6;&#x65F6;&#x95F4;&#xFF0C;&#x4F46;&#x662F;&#x8C03;&#x7528;&#x65B9;&#x7684;&#x8D85;&#x65F6;&#x95F4;&#x5927;&#x4E8E;mysql&#x7AEF;&#x7684;&#x65F6;&#x95F4;&#xFF0C;mysql&#x7AEF;&#x5DF2;&#x7ECF;&#x65AD;&#x5F00;&#x94FE;&#x63A5;&#x4E86;&#xFF0C;&#x4F46;&#x662F;&#x9002;&#x7528;&#x623F;&#x7684;&#x8FDE;&#x63A5;&#x6C60;&#x8FD9;&#x4E00;&#x7AEF;&#x53D1;&#x73B0;&#x8FD8;&#x6709;&#x7A7A;&#x95F2;&#x7684;&#x94FE;&#x63A5;&#x5728;&#x94FE;&#x63A5;&#x6C60;&#x5B50;&#x91CC;&#x9762;&#x8EBA;&#x7740;&#xFF0C;&#x5C31;&#x4F1A;&#x53BB;&#x7528;&#x8FD9;&#x4E2A;&#x5DF2;&#x7ECF;&#x88AB;mysql&#x670D;&#x52A1;&#x7AEF;&#x65AD;&#x5F00;&#x7684;&#x94FE;&#x63A5;&#xFF0C;&#x90A3;&#x4E48;&#x8FD9;&#x6837;&#x4F1A;&#x6709;&#x4EC0;&#x4E48;&#x540E;&#x679C;&#x5462;&#xFF1F;proxy&#x8BA4;&#x4E3A;&#x8FD9;&#x4E2A;&#x94FE;&#x63A5;&#x8FD8;&#x80FD;&#x7528;&#x4E8E;&#x662F;&#x4F1A;&#x4F7F;&#x7528;&#x8FD9;&#x4E2A;&#x94FE;&#x63A5;&#x8FDB;&#x884C;&#x53D1;&#x9001;&#xFF0C;&#x4F46;&#x662F;&#x8FD9;&#x4E2A;&#x65F6;&#x5019;&#x4F1A;&#x62A5;&#x9519;&#xFF0C;&#x800C;&#x4E0D;&#x662F;&#x5BFC;&#x81F4;&#x7A0B;&#x5E8F;hang&#x6B7B;</p>
+<pre><code>[mysql] 2020/01/19 17:08:15 packets.go:36: unexpected EOF
+error:  invalid connection
+</code></pre><pre><code>&#x8BBE;&#x7F6E;&#x672C;&#x5730;&#x7684;sql&#xFF0C;&#x8FDB;&#x884C;&#x731C;&#x60F3;&#x7684;&#x9A8C;&#x8BC1; - &#x8BBE;&#x7F6E;&#x8D85;&#x65F6;&#x4E3A; 60s interactive_timeout &#x662F;&#x7EC8;&#x7AEF;&#x4EA4;&#x4E92;&#x7684;&#x8D85;&#x65F6;&#x65F6;&#x95F4; 
+set wait_timeout=60;
+set interactive_timeout=60;
+set global wait_timeout=60;
+set global interactive_timeout=60;
+
+show global variables like &apos;%timeout%&apos;;
+show variables like &apos;%timeout%&apos;;
+</code></pre><p>&#x8FD9;&#x91CC;&#x554A;&#x8FD8;&#x662F;&#x8981;&#x8BBE;&#x7F6E;mysql&#x7684;connect timeout &#x7684;&#x3002;</p>
+<h3 id="&#x53EF;&#x80FD;&#x95EE;&#x9898;&#x516D;&#xFF1A;&#x6570;&#x636E;&#x5E93;&#x7684;&#x8FDE;&#x63A5;&#x6C60;&#x6709;&#x6CC4;&#x9732;">&#x53EF;&#x80FD;&#x95EE;&#x9898;&#x516D;&#xFF1A;&#x6570;&#x636E;&#x5E93;&#x7684;&#x8FDE;&#x63A5;&#x6C60;&#x6709;&#x6CC4;&#x9732;</h3>
+<p>&#x6700;&#x53EF;&#x80FD;&#x7684;&#x4E8B;&#x60C5;&#x5C31;&#x662F;&#xFF0C;&#x6570;&#x636E;&#x5E93;&#x7684;&#x8FDE;&#x63A5;&#x6C60;&#x4E2D;&#x6709;&#x94FE;&#x63A5;&#x6CC4;&#x9732;&#x3002;&#x5982;&#x679C;&#x8FDE;&#x63A5;&#x6C60;&#x4E2D;&#x7684;&#x8D44;&#x6E90;&#x8017;&#x5C3D;&#xFF0C;&#x90A3;&#x4E48;&#x4F1A;&#x5BFC;&#x81F4;&#x5728;&#x8FDB;&#x884C;&#x67E5;&#x8BE2;&#x7684;&#x65F6;&#x5019;&#xFF0C;&#x963B;&#x585E;&#x5728; QUERY &#x8FD9;&#x4E2A;&#x51FD;&#x6570;&#x4E0A;&#x9762;&#x3002;&#x81F3;&#x4E8E;&#x4E0A;&#x9762;&#x8BF4;&#x7684; http &#x7684;&#x670D;&#x52A1;&#x63A5;&#x53E3;&#x5361;&#x4F4F;&#xFF0C;&#x56E0;&#x4E3A;http&#x7684;&#x670D;&#x52A1;&#x63A5;&#x53E3;&#x90FD;&#x4F1A;&#x53BB;&#x8BF7;&#x6C42;&#x6570;&#x636E;&#x5E93;&#x3002;&#x8FD9;&#x6837;&#x6240;&#x6709;&#x7684;&#x73B0;&#x8C61;&#x5C31;&#x90FD;&#x5BF9;&#x4E0A;&#x4E86;&#xFF0C;&#x4E00;&#x5F00;&#x59CB;&#x6CA1;&#x7F51;&#x8FD9;&#x4E0A;&#x9762;&#x60F3;&#x662F;&#x56E0;&#x4E3A;&#xFF0C;&#x5F53;&#x7A0B;&#x5E8F;&#x5361;&#x6B7B;&#x7684;&#x65F6;&#x5019;&#x6211;&#x53BB;&#x67E5;&#x6570;&#x636E;&#x5E93;&#x7684;&#x94FE;&#x63A5;&#xFF0C;&#x53D1;&#x73B0;&#x7CFB;&#x7EDF;&#x4E2D;&#x548C;&#x6570;&#x636E;&#x5E93;&#x7684;&#x94FE;&#x63A5;&#x5E76;&#x6CA1;&#x6709;&#x90A3;&#x4E48;&#x591A;&#xFF0C;200&#x7684;&#x6700;&#x5927;&#x8FDE;&#x63A5;&#x6570;&#xFF0C;&#x53EF;&#x662F;&#x4F7F;&#x7528;&#x547D;&#x4EE4; netstat -anp | grep 5668 &#x53D1;&#x73B0;&#x8FDE;&#x63A5;&#x6570;&#x53EA;&#x6709;&#x51E0;&#x4E2A;&#xFF0C;&#x6240;&#x4EE5;&#x6211;&#x5224;&#x65AD;&#x8FD9;&#x91CC;&#x4E0D;&#x662F;&#x53D1;&#x751F;&#x4E86;&#x6CC4;&#x9732;&#x3002;&#x56E0;&#x4E3A;&#x7EBF;&#x4E0B;&#x5199;&#x7684;&#x6CC4;&#x9732;&#x7684;&#x4F8B;&#x5B50;&#x90FD;&#x662F;&#x8FDE;&#x63A5;&#x6570;&#x4E0A;&#x6DA8;&#x7684;&#xFF0C;&#x56E0;&#x4E3A;mysql&#x7684;wait_timeout&#x65F6;&#x95F4;&#x662F;8&#x5C0F;&#x65F6;&#xFF0C;&#x6240;&#x4EE5;&#x8FD9;&#x91CC;&#x975E;&#x5E38;&#x5947;&#x602A;&#x3002;</p>
+<p>&#x6700;&#x540E;&#x6CA1;&#x529E;&#x6CD5;&#x6211;&#x53BB;&#x4FEE;&#x6539;&#x4E86;golang&#x5173;&#x4E8E;sql&#x8FD9;&#x5757;&#x7684;&#x6E90;&#x4EE3;&#x7801;&#xFF0C;&#x5728;&#x6BCF;&#x6B21;query&#x7684;&#x65F6;&#x5019;&#x6211;&#x90FD;&#x6253;&#x5370;&#x51FA;&#x8FDE;&#x63A5;&#x6C60;&#x7684;&#x72B6;&#x6001;&#xFF0C;&#x6700;&#x540E;&#x53D1;&#x73B0;&#x8DD1;&#x4E86;&#x4E24;&#x4E2A;&#x5C0F;&#x65F6;&#x4E4B;&#x540E;&#xFF0C;&#x8FDE;&#x63A5;&#x6570;&#x679C;&#x7136;&#x6709;&#x6CC4;&#x9732;&#xFF0C;&#x662F;43&#x3002;&#x8FD9;&#x91CC;&#x6211;&#x5927;&#x80C6;&#x5224;&#x65AD;&#x5E94;&#x8BE5;&#x662F;&#x6709;&#x4E9B;&#x903B;&#x8F91;&#x8DD1;&#x5230;&#x4E86;-&#x6570;&#x636E;&#x5E93;&#x7684;&#x8FDE;&#x63A5;&#x6570;&#x53EA;&#x589E;&#x6CA1;&#x51CF;&#xFF0C;&#x4F46;&#x662F;&#x94FE;&#x63A5;&#x88AB;&#x6B63;&#x5E38;&#x590D;&#x7528;&#x4E86;.&#x73B0;&#x5728;&#x4E5F;&#x6CA1;&#x641E;&#x6E05;&#x695A;&#x4E3A;&#x4EC0;&#x4E48;&#x6709;&#x8FD9;&#x79CD;&#x73B0;&#x8C61;&#x3002;&#x3002;&#x3002;&#x3002;</p>
+<p>&#x4FEE;&#x590D;&#x4E86;&#x672A;&#x80FD;&#x6B63;&#x4EA7;&#x5173;&#x95ED;&#x7684; rows&#xFF0C;&#x679C;&#x7136;&#x5361;&#x6B7B;&#x7684;&#x73B0;&#x8C61;&#x518D;&#x4E5F;&#x6CA1;&#x6709;&#x53D1;&#x751F;&#x3002;&#x5947;&#x602A;&#x7684;&#x662F;&#xFF0C;numopen&#x589E;&#x52A0;&#xFF0C;&#x4F46;&#x662F;netstat -anp &#x67E5;&#x770B;&#x6570;&#x636E;&#x5E93;&#x76F8;&#x5E94;&#x7AEF;&#x53E3;&#x7684;&#x94FE;&#x63A5;&#x5374;&#x6CA1;&#x6709;&#x589E;&#x52A0;&#x6216;&#x8005;&#x5F02;&#x5E38;&#xFF0C;&#x771F;&#x5947;&#x602A;&#x3002;&#x3002;</p>
+<h3 id="&#x5C0F;&#x63D2;&#x66F2;">&#x5C0F;&#x63D2;&#x66F2;</h3>
+<p>&#x5728;&#x538B;&#x6D4B;&#x7684;&#x8FC7;&#x7A0B;&#x4E2D;&#xFF0C;&#x4E24;&#x53F0;&#x673A;&#x5668;&#x4E0A;&#x9762;&#x7684;proxy&#x670D;&#x52A1;&#x5728;&#x538B;&#x6D4B;&#x65F6;&#x5019;&#x7684;&#x8868;&#x73B0;&#x4E0D;&#x4E00;&#x6837;&#x3002;&#x6211;&#x662F;&#x9488;&#x5BF9;&#x4E00;&#x4E2A;tcp&#x670D;&#x52A1;&#x63A5;&#x53E3;&#x8FDB;&#x884C;&#x538B;&#x6D4B;&#x7684;&#x3002;&#x5728;&#x4E00;&#x53F0;&#x670D;&#x52A1;&#x5668;&#x4E0A;&#x9762;&#xFF0C;&#x538B;&#x6D4B;&#x7684;&#x9891;&#x7387;&#x4E0A;&#x6765;&#x4E4B;&#x540E;,&#x6253;&#x5370;&#x65E5;&#x5FD7;&#x7684;&#x65F6;&#x5019;&#x4F1A;&#x6709;&#x5EF6;&#x8FDF;&#xFF0C;&#x8FD8;&#x5728;&#x6253;&#x5370;1&#x5206;&#x949F;&#x4E4B;&#x524D;&#x7684;&#x65E5;&#x5FD7;&#x3002;&#x4E00;&#x5F00;&#x59CB;&#x6211;&#x4EE5;&#x4E3A;&#x662F;&#x786C;&#x76D8;&#x7684;&#x95EE;&#x9898;&#xFF0C;&#x6216;&#x8005;socket&#x7F13;&#x51B2;&#x533A;&#x7684;&#x95EE;&#x9898;&#xFF0C;&#x540E;&#x6765;&#x548C;&#x53E6;&#x4E00;&#x53F0;&#x673A;&#x5668;&#x5BF9;&#x6BD4;&#x4E4B;&#x540E;&#x53D1;&#x73B0;&#x5E76;&#x6CA1;&#x4E0D;&#x662F;&#x8FD9;&#x4E2A;&#x95EE;&#x9898;&#x3002;</p>
+<p>&#x540E;&#x6765;&#x4F7F;&#x7528; iftop &#x8FD9;&#x4E2A;&#x5DE5;&#x5177;&#xFF0C;&#x67E5;&#x770B;&#x4E86;&#x4E00;&#x4E0B;&#x8FD9;&#x53F0;&#x673A;&#x5668;&#x7684;&#x7F51;&#x7EDC;&#x51FA;&#x53E3;&#x6D41;&#x91CF;&#xFF0C;&#x5BF9;&#x6BD4;&#x90A3;&#x53F0;&#x597D;&#x7684;&#x673A;&#x5668;&#x4ED6;&#x7684;&#x738B;&#x697C;&#x51FA;&#x53E3;&#x6D41;&#x91CF;&#x8981;&#x5C0F;&#x7684;&#x591A;&#xFF0C;&#x4E5F;&#x5C31;&#x662F;&#x7F51;&#x7EDC;&#x72B6;&#x51B5;&#x4E0D;&#x597D;&#x3002;&#x6240;&#x4EE5;&#x5B58;&#x5728;&#x63A5;&#x6536;&#x5EF6;&#x8FDF;&#x7684;&#x73B0;&#x8C61;&#x3002;</p>
+<h2 id="&#x95EE;&#x9898;&#x63CF;&#x8FF0;">&#x95EE;&#x9898;&#x63CF;&#x8FF0;</h2>
+<p>&#x7EC4;&#x5185;&#x7684;gonet&#x7F51;&#x7EDC;&#x6846;&#x67B6;(&#x57FA;&#x4E8E;protobuf&#x534F;&#x8BAE;-&#x5E76;&#x4E0D;&#x662F;&#x4F7F;&#x7528;protobuf&#x5E93;&#x5199;&#x7684;RPC&#x6846;&#x67B6;&#xFF0C;&#x53EA;&#x662F;&#x4E00;&#x4E2A;&#x5F02;&#x5E38;&#x7B80;&#x5355;&#x7684;&#x652F;&#x6301;protobuf&#x7684;&#x6781;&#x7B80;tcp&#x7F51;&#x7EDC;&#x6846;&#x67B6;&#x800C;&#x5DF2;)&#x3002;</p>
+<p>&#x53D1;&#x9001;&#x7AEF; ==&#x300B; proto.marshal(proto.Message) ==&gt; &#x63A5;&#x6536;&#x7AEF; ==&#x300B;proto.unmarshal(readbuffer) </p>
+<p>&#x63A5;&#x6536;&#x7AEF; unmarshal&#x7684;&#x65F6;&#x5019;&#x5C31;&#x4F1A;&#x51FA;&#x73B0; EOF&#xFF0C;&#x8BF4;&#x660E;&#x6570;&#x636E;&#x4E0D;&#x5BF9;&#x4E86;</p>
+<h2 id="&#x95EE;&#x9898;&#x5206;&#x6790;">&#x95EE;&#x9898;&#x5206;&#x6790;</h2>
+<p>&#x63A5;&#x6536;&#x7AEF;&#x6570;&#x636E;&#x51FA;&#x9519;&#xFF0C;&#x9996;&#x5148;&#x6211;&#x6000;&#x7591;&#x7684;&#x5C31;&#x662F;&#x6570;&#x636E;&#x5728;&#x53D1;&#x9001;&#x7684;&#x65F6;&#x5019;&#x51FA;&#x4E86;&#x95EE;&#x9898;&#xFF0C;&#x4F46;&#x662F;&#x8FD9;&#x4E2A;&#x95EE;&#x9898;&#x662F;&#x5076;&#x73B0;&#x7684;&#xFF0C;&#x901A;&#x8FC7;tcpdump &#x6293;&#x5305;&#x5206;&#x6790;&#xFF0C;&#x51FA;&#x9519;&#x7684;&#x5305;&#x548C;&#x6B63;&#x5E38;&#x7684;&#x5305;&#x662F;&#x6CA1;&#x6709;&#x4EFB;&#x4F55;&#x533A;&#x522B;&#x7684;&#x3002;&#x6392;&#x9664;&#x53D1;&#x9001;&#x7684;&#x65F6;&#x5019;&#x6570;&#x636E;&#x5305;&#x5E8F;&#x5217;&#x5316;&#x51FA;&#x9519;&#x7684;&#x53EF;&#x80FD;&#x3002;</p>
+<p>&#x90A3;&#x4E48;&#x63A5;&#x6536;&#x7AEF;&#x5728;&#x6570;&#x636E;&#x5904;&#x7406;&#x7684;&#x65F6;&#x5019;&#x80AF;&#x5B9A;&#x51FA;&#x4E86;&#x95EE;&#x9898;&#xFF0C;&#x662F;&#x4E0D;&#x662F;&#x5904;&#x7406;&#x63A5;&#x53D7;&#x7684;&#x51FD;&#x6570;&#x4E0D;&#x662F;&#x4E00;&#x4E2A;&#x53EF;&#x91CD;&#x5165;&#x51FD;&#x6570;&#xFF0C;&#x5E76;&#x4E14;&#x51FA;&#x73B0;&#x4E86;&#x7EBF;&#x7A0B;&#x5B89;&#x5168;&#x95EE;&#x9898;&#x6216;&#x8005;&#xFF0C;&#x81EA;&#x8EAB;&#x7EBF;&#x7A0B;&#x88AB;&#x4E2D;&#x65AD;&#x5904;&#x7406;&#xFF0C;&#x64CD;&#x4F5C;&#x4E86;&#x672A;&#x4FDD;&#x62A4;&#x7684;&#x6570;&#x636E;&#x3002;&#x770B;&#x4E86;&#x4E0B;&#x8FD9;&#x4E2A;&#x673A;&#x5668;&#x7B80;&#x5355;&#x7684;&#x7F51;&#x7EDC;&#x6846;&#x67B6;&#xFF0C;&#x5E76;&#x4E0D;&#x5B58;&#x5728;&#x8FD9;&#x4E2A;&#x95EE;&#x9898;&#x3002;</p>
+<p>&#x7ECF;&#x8FC7;&#x4EE3;&#x7801;&#x7684;&#x4ED4;&#x7EC6;&#x6392;&#x67E5;&#x53D1;&#x73B0;&#xFF0C;&#x6BCF;&#x6B21;headleread&#x7684;&#x65F6;&#x5019;&#x4F1A;&#x5411;chan&#x4E2D;&#x53D1;&#x9001;&#x4E00;&#x4E2A;&#x63A5;&#x53D7;&#x5230;&#x7684;&#x6570;&#x636E;&#x5305;&#x3002;&#x8FD9;&#x4E2A;&#x6570;&#x636E;&#x5305;&#x4E2D;&#x5305;&#x542B;&#x4E00;&#x4E2A;slice&#xFF0C;&#x611A;&#x8822;&#x7684;&#x4E8B;&#x60C5;&#x53D1;&#x751F;&#x4E86;&#xFF0C;&#x4F20;&#x5165;&#x8FD9;&#x4E94;&#x4E2A;slice&#x7684;&#x65F6;&#x5019;&#x4E0D;&#x662F; make + copy &#x7684;&#xFF0C;&#x800C;&#x662F;&#x5168;&#x90E8;&#x590D;&#x7528;socket&#x63A5;&#x6536;buf&#x7684;&#x8FD9;&#x4E2A;slice&#xFF0C;slice&#x4E0D;&#x7BA1;&#x600E;&#x4E48;&#x5904;&#x7406;&#x548C;&#x5207;&#x5272;&#x90FD;&#x662F;&#x5171;&#x4EAB;&#x5E95;&#x5C42;&#x6570;&#x7EC4;&#x7684;&#xFF0C;&#x6240;&#x4EE5;&#xFF0C;&#x8FD4;&#x56DE;&#x7684;&#x8FD9;&#x4E2A; slice &#x5C31;&#x76F8;&#x5F53;&#x4E8E;&#x4E00;&#x4E2A;&#x5168;&#x5C40;&#x53D8;&#x91CF;&#xFF0C;prtoxy&#x4E1A;&#x52A1;&#x6BCF;&#x4E00;&#x4E2A;&#x6570;&#x636E;&#x8BF7;&#x6C42;&#x65B0;&#x5EFA;&#x4E00;&#x4E2A; go &#x7A0B;&#x6765;&#x5904;&#x7406;&#xFF0C;&#x8FD9;&#x6837;&#x5C31;&#x9020;&#x6210;&#x4E86;&#x7ADE;&#x6001;</p>
+<pre><code>func (conn *Connection) HandleRead(PackageConnCh chan *PackageConn, exitCh chan *Connection){
+    buf := make([]byte, 10240)
+    defer conn.Close()
+    for {
+        n, err := conn.Conn.Read(buf)
+        if err != nil || n &lt;= 0 {
+            // log.Printf(&quot;[ERROR] connection[%s] disconnect [error:%s]&quot;, conn.RemoteAddr, err.Error())
+            exitCh &lt;- conn
+            return
+        }
+        // readbuf &#x662F;&#x4E00;&#x4E2A; &#x5207;&#x7247;&#x7F13;&#x51B2;&#x5668;  bytes.Buffer, &#x5B83;&#x6784;&#x5EFA;&#x7684;&#x65F6;&#x5019;&#x5C31;&#x662F;&#x5171;&#x4EAB;&#x4E86; buf&#x7684;&#x5185;&#x5B58;
+        conn.readBuf.Write(buf[:n])
+        for conn.readBuf.Len() &gt;= 8 {
+            // &#x8FD9;&#x4E2A;&#x51FD;&#x6570;&#x5728;&#x5904;&#x7406;&#x7684;&#x65F6;&#x5019;&#x5E76;&#x6CA1;&#x6709;&#x65B0;&#x5EFA;slice&#x7ED9;p&#xFF0C;&#x5BFC;&#x81F4;&#x6240;&#x6709;&#x8FD4;&#x56DE;&#x7684;p&#x7684;Data&#x7ED3;&#x6784;&#x90FD;&#x5171;&#x4EAB; buf &#x7684;&#x5E95;&#x5C42;&#x6570;&#x7EC4;
+            p, err := conn.ParsePackage()
+            if err != nil {
+                buf = nil
+                log.Printf(&quot;[ERROR] illegal msg(%s) from buffer(%s) of %s, exit\n&quot;, err.Error(), buf, conn.RemoteAddr)
+                exitCh &lt;- conn
+                return
+            }
+            // package is not complete
+            if p == nil {
+                buf = nil
+                //log.Printf(&quot;[DEBUG] Package from [%s] is incomplete, continue to recv&quot;, conn.RemoteAddr)
+                break
+            }
+            buf = nil
+            pconn := new(PackageConn)
+            pconn.Item = p
+            pconn.Conn = conn
+            PackageConnCh &lt;- pconn
+        }
+        buf = make([]byte, 4096)
+    }
+}
+</code></pre>
+                                
+                                </section>
+                            
+    </div>
+    <div class="search-results">
+        <div class="has-results">
+            
+            <h1 class="search-results-title"><span class='search-results-count'></span> results matching "<span class='search-query'></span>"</h1>
+            <ul class="search-results-list"></ul>
+            
+        </div>
+        <div class="no-results">
+            
+            <h1 class="search-results-title">No results matching "<span class='search-query'></span>"</h1>
+            
+        </div>
+    </div>
+</div>
+
+                        </div>
+                    </div>
+                
+            </div>
+
+            
+                
+                <a href="./" class="navigation navigation-prev " aria-label="Previous page: Introduction">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+                
+                
+                <a href="golang笔记.html" class="navigation navigation-next " aria-label="Next page: golang学习笔记">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+                
+            
+        
+    </div>
+
+    <script>
+        var gitbook = gitbook || [];
+        gitbook.push(function() {
+            gitbook.page.hasChanged({"page":{"title":"反向构建的一次bug排查","level":"1.2","depth":1,"next":{"title":"golang学习笔记","level":"1.3","depth":1,"path":"golang笔记.md","ref":"golang笔记.md","articles":[]},"previous":{"title":"Introduction","level":"1.1","depth":1,"path":"README.md","ref":"README.md","articles":[]},"dir":"ltr"},"config":{"gitbook":"*","theme":"default","variables":{},"plugins":["livereload"],"pluginsConfig":{"livereload":{},"highlight":{},"search":{},"lunr":{"maxIndexSize":1000000,"ignoreSpecialCharacters":false},"sharing":{"facebook":true,"twitter":true,"google":false,"weibo":false,"instapaper":false,"vk":false,"all":["facebook","google","twitter","weibo","instapaper"]},"fontsettings":{"theme":"white","family":"sans","size":2},"theme-default":{"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"},"showLevel":false}},"structure":{"langs":"LANGS.md","readme":"README.md","glossary":"GLOSSARY.md","summary":"SUMMARY.md"},"pdf":{"pageNumbers":true,"fontSize":12,"fontFamily":"Arial","paperSize":"a4","chapterMark":"pagebreak","pageBreaksBefore":"/","margin":{"right":62,"left":62,"top":56,"bottom":56}},"styles":{"website":"styles/website.css","pdf":"styles/pdf.css","epub":"styles/epub.css","mobi":"styles/mobi.css","ebook":"styles/ebook.css","print":"styles/print.css"}},"file":{"path":"反向构建的一次bug排查.md","mtime":"2020-01-19T11:27:30.673Z","type":"markdown"},"gitbook":{"version":"3.2.3","time":"2020-01-20T08:33:35.247Z"},"basePath":".","book":{"language":""}});
+        });
+    </script>
+</div>
+
+        
+    <script src="gitbook/gitbook.js"></script>
+    <script src="gitbook/theme.js"></script>
+    
+        
+        <script src="gitbook/gitbook-plugin-livereload/plugin.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search-engine.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-search/search.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/lunr.min.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-lunr/search-lunr.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-sharing/buttons.js"></script>
+        
+    
+        
+        <script src="gitbook/gitbook-plugin-fontsettings/fontsettings.js"></script>
+        
+    
+
+    </body>
+</html>
+
