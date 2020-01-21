@@ -100,6 +100,7 @@ sclie 切片数据结构本身就是一个引用类型，再对其进行取地�
 
 ```
 p := &slice;
+<<<<<<< HEAD
 fmt.Printf("%p\n", p);     //0xc000012446;
 fmt.Println(p);            //0xc0000aa362      相当于传统c中的*p 
 fmt.Println(*p);           //0xc0000ac141      相当于传统c中的**p
@@ -160,6 +161,13 @@ fmt.Println(p1.age)   // 输出 10
 ```
 上面的程序并不会改变切片中的元素的值，因为for range 只会进行值拷贝，struct 又是非引用类型。
 
+fmt.Printf("%p\n", p);//0xc000012446;
+fmt.Println(p);            //0xc0000aa362     相当于传统c中的*p 
+fmt.Println(*p);        //0xc0000ac141    相当于传统c中的**p
+fmt.Println(p[0]);        //违法            相当于传统c中的(*p)[0]
+fmt.Println((*p)[0]);    //1                相当于传统c中的(**p)[0]
+```
+
 ## golang的一些特殊语法
 
 ### 切片相关的数据结构
@@ -219,6 +227,7 @@ channels   -> nil
 functions  -> nil
 interfaces -> nil
 ```
+<<<<<<< HEAD
 
 ## golang 踩坑
 
